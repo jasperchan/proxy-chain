@@ -18,75 +18,87 @@ the world's most popular web craling library for Node.js.
 
 The proxy-chain package currently supports HTTP/SOCKS forwarding and HTTP CONNECT tunneling to forward arbitrary protocols such as HTTPS or FTP ([learn more](https://blog.apify.com/tunneling-arbitrary-protocols-over-http-proxy-with-static-ip-address-b3a2222191ff)). The HTTP CONNECT tunneling also supports the SOCKS protocol. Also, proxy-chain only supports the Basic [Proxy-Authorization](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Proxy-Authorization).
 
+## Added In The Fork
+
+- more options for `anonymizeProxy`
+
 ## Run a simple HTTP/HTTPS proxy server
 
 ```javascript
-const ProxyChain = require('proxy-chain');
+const ProxyChain = require("proxy-chain");
 
 const server = new ProxyChain.Server({ port: 8000 });
 
 server.listen(() => {
-    console.log(`Proxy server is listening on port ${8000}`);
+  console.log(`Proxy server is listening on port ${8000}`);
 });
 ```
 
 ## Run a HTTP/HTTPS proxy server with credentials and upstream proxy
 
 ```javascript
-const ProxyChain = require('proxy-chain');
+const ProxyChain = require("proxy-chain");
 
 const server = new ProxyChain.Server({
-    // Port where the server will listen. By default 8000.
-    port: 8000,
+  // Port where the server will listen. By default 8000.
+  port: 8000,
 
-    // Optional host where the proxy server will listen.
-    // If not specified, the sever listens on an unspecified IP address (0.0.0.0 in IPv4, :: in IPv6)
-    // You can use this option to limit the access to the proxy server.
-    host: 'localhost',
+  // Optional host where the proxy server will listen.
+  // If not specified, the sever listens on an unspecified IP address (0.0.0.0 in IPv4, :: in IPv6)
+  // You can use this option to limit the access to the proxy server.
+  host: "localhost",
 
-    // Enables verbose logging
-    verbose: true,
+  // Enables verbose logging
+  verbose: true,
 
-    // Custom user-defined function to authenticate incoming proxy requests,
-    // and optionally provide the URL to chained upstream proxy.
-    // The function must return an object (or promise resolving to the object) with the following signature:
-    // { requestAuthentication: boolean, upstreamProxyUrl: string, failMsg?: string, customTag?: unknown }
-    // If the function is not defined or is null, the server runs in simple mode.
-    // Note that the function takes a single argument with the following properties:
-    // * request      - An instance of http.IncomingMessage class with information about the client request
-    //                  (which is either HTTP CONNECT for SSL protocol, or other HTTP request)
-    // * username     - Username parsed from the Proxy-Authorization header. Might be empty string.
-    // * password     - Password parsed from the Proxy-Authorization header. Might be empty string.
-    // * hostname     - Hostname of the target server
-    // * port         - Port of the target server
-    // * isHttp       - If true, this is a HTTP request, otherwise it's a HTTP CONNECT tunnel for SSL
-    //                  or other protocols
-    // * connectionId - Unique ID of the HTTP connection. It can be used to obtain traffic statistics.
-    prepareRequestFunction: ({ request, username, password, hostname, port, isHttp, connectionId }) => {
-        return {
-            // If set to true, the client is sent HTTP 407 resposne with the Proxy-Authenticate header set,
-            // requiring Basic authentication. Here you can verify user credentials.
-            requestAuthentication: username !== 'bob' || password !== 'TopSecret',
+  // Custom user-defined function to authenticate incoming proxy requests,
+  // and optionally provide the URL to chained upstream proxy.
+  // The function must return an object (or promise resolving to the object) with the following signature:
+  // { requestAuthentication: boolean, upstreamProxyUrl: string, failMsg?: string, customTag?: unknown }
+  // If the function is not defined or is null, the server runs in simple mode.
+  // Note that the function takes a single argument with the following properties:
+  // * request      - An instance of http.IncomingMessage class with information about the client request
+  //                  (which is either HTTP CONNECT for SSL protocol, or other HTTP request)
+  // * username     - Username parsed from the Proxy-Authorization header. Might be empty string.
+  // * password     - Password parsed from the Proxy-Authorization header. Might be empty string.
+  // * hostname     - Hostname of the target server
+  // * port         - Port of the target server
+  // * isHttp       - If true, this is a HTTP request, otherwise it's a HTTP CONNECT tunnel for SSL
+  //                  or other protocols
+  // * connectionId - Unique ID of the HTTP connection. It can be used to obtain traffic statistics.
+  prepareRequestFunction: ({
+    request,
+    username,
+    password,
+    hostname,
+    port,
+    isHttp,
+    connectionId,
+  }) => {
+    return {
+      // If set to true, the client is sent HTTP 407 resposne with the Proxy-Authenticate header set,
+      // requiring Basic authentication. Here you can verify user credentials.
+      requestAuthentication: username !== "bob" || password !== "TopSecret",
 
-            // Sets up an upstream HTTP/SOCKS proxy to which all the requests are forwarded.
-            // If null, the proxy works in direct mode, i.e. the connection is forwarded directly
-            // to the target server. This field is ignored if "requestAuthentication" is true.
-            // The username and password must be URI-encoded.
-            upstreamProxyUrl: `http://username:password@proxy.example.com:3128`,
-            // Or use SOCKS4/5 proxy, e.g.
-            // upstreamProxyUrl: `socks://username:password@proxy.example.com:1080`,
+      // Sets up an upstream HTTP/SOCKS proxy to which all the requests are forwarded.
+      // If null, the proxy works in direct mode, i.e. the connection is forwarded directly
+      // to the target server. This field is ignored if "requestAuthentication" is true.
+      // The username and password must be URI-encoded.
+      upstreamProxyUrl: `http://username:password@proxy.example.com:3128`,
+      // Or use SOCKS4/5 proxy, e.g.
+      // upstreamProxyUrl: `socks://username:password@proxy.example.com:1080`,
 
-            // If "requestAuthentication" is true, you can use the following property
-            // to define a custom error message to return to the client instead of the default "Proxy credentials required"
-            failMsg: 'Bad username or password, please try again.',
+      // If "requestAuthentication" is true, you can use the following property
+      // to define a custom error message to return to the client instead of the default "Proxy credentials required"
+      failMsg: "Bad username or password, please try again.",
 
-            // Optional custom tag that will be passed back via
-            // `tunnelConnectResponded` or `tunnelConnectFailed` events
-            // Can be used to pass information between proxy-chain
-            // and any external code or application using it
-            customTag: { userId: '123' },
-        };
-    },
+      // Optional custom tag that will be passed back via
+      // `tunnelConnectResponded` or `tunnelConnectFailed` events
+      // Can be used to pass information between proxy-chain
+      // and any external code or application using it
+      customTag: { userId: "123" },
+    };
+  },
 });
 
 server.listen(() => {
@@ -94,19 +106,20 @@ server.listen(() => {
 });
 
 // Emitted when HTTP connection is closed
-server.on('connectionClosed', ({ connectionId, stats }) => {
+server.on("connectionClosed", ({ connectionId, stats }) => {
   console.log(`Connection ${connectionId} closed`);
   console.dir(stats);
 });
 
 // Emitted when HTTP request fails
-server.on('requestFailed', ({ request, error }) => {
+server.on("requestFailed", ({ request, error }) => {
   console.log(`Request ${request.url} failed`);
   console.error(error);
 });
 ```
 
 ## SOCKS support
+
 SOCKS protocol is supported for versions 4 and 5, specifically: `['socks', 'socks4', 'socks4a', 'socks5', 'socks5h']`, where `socks` will default to version 5.
 
 You can use an `upstreamProxyUrl` like `socks://username:password@proxy.example.com:1080`.
@@ -121,7 +134,7 @@ Upstream responded with non-200 status code.
 
 ### `591 RESERVED`
 
-*This status code is reserved for further use.*
+_This status code is reserved for further use._
 
 ### `592 Status Code Out Of Range`
 
@@ -149,7 +162,7 @@ Incorrect upstream credentials.
 
 ### `598 RESERVED`
 
-*This status code is reserved for further use.*
+_This status code is reserved for further use._
 
 ### `599 Upstream Error`
 
@@ -171,26 +184,36 @@ The class constructor has the following parameters: `RequestError(body, statusCo
 By default, the response will have `Content-Type: text/plain; charset=utf-8`.
 
 ```javascript
-const ProxyChain = require('proxy-chain');
+const ProxyChain = require("proxy-chain");
 
 const server = new ProxyChain.Server({
-    prepareRequestFunction: ({ request, username, password, hostname, port, isHttp, connectionId }) => {
-        if (username !== 'bob') {
-           throw new ProxyChain.RequestError('Only Bob can use this proxy!', 400);
-        }
-    },
+  prepareRequestFunction: ({
+    request,
+    username,
+    password,
+    hostname,
+    port,
+    isHttp,
+    connectionId,
+  }) => {
+    if (username !== "bob") {
+      throw new ProxyChain.RequestError("Only Bob can use this proxy!", 400);
+    }
+  },
 });
 ```
 
 ## Measuring traffic statistics
 
 To get traffic statistics for a certain HTTP connection, you can use:
+
 ```javascript
 const stats = server.getConnectionStats(connectionId);
 console.dir(stats);
 ```
 
 The resulting object looks like:
+
 ```javascript
 {
     // Number of bytes sent to client
@@ -241,20 +264,27 @@ with the following properties:
 Here is a simple example:
 
 ```javascript
-const ProxyChain = require('proxy-chain');
+const ProxyChain = require("proxy-chain");
 
 const server = new ProxyChain.Server({
-    port: 8000,
-    prepareRequestFunction: ({ request, username, password, hostname, port, isHttp }) => {
+  port: 8000,
+  prepareRequestFunction: ({
+    request,
+    username,
+    password,
+    hostname,
+    port,
+    isHttp,
+  }) => {
+    return {
+      customResponseFunction: () => {
         return {
-            customResponseFunction: () => {
-                return {
-                    statusCode: 200,
-                    body: `My custom response to ${request.url}`,
-                };
-            },
+          statusCode: 200,
+          body: `My custom response to ${request.url}`,
         };
-    },
+      },
+    };
+  },
 });
 
 server.listen(() => {
@@ -268,24 +298,31 @@ While `customResponseFunction` enables custom handling methods such as `GET` and
 It's possible to route those requests differently using the `customConnectServer` option. It accepts an instance of Node.js HTTP server.
 
 ```javascript
-const http = require('http');
-const ProxyChain = require('proxy-chain');
+const http = require("http");
+const ProxyChain = require("proxy-chain");
 
 const exampleServer = http.createServer((request, response) => {
-    response.end('Hello from a custom server!');
+  response.end("Hello from a custom server!");
 });
 
 const server = new ProxyChain.Server({
-    port: 8000,
-    prepareRequestFunction: ({ request, username, password, hostname, port, isHttp }) => {
-        if (request.url.toLowerCase() === 'example.com:80') {
-            return {
-                customConnectServer: exampleServer,
-            };
-        }
+  port: 8000,
+  prepareRequestFunction: ({
+    request,
+    username,
+    password,
+    hostname,
+    port,
+    isHttp,
+  }) => {
+    if (request.url.toLowerCase() === "example.com:80") {
+      return {
+        customConnectServer: exampleServer,
+      };
+    }
 
-        return {};
-    },
+    return {};
+  },
 });
 
 server.listen(() => {
@@ -299,17 +336,20 @@ This is an unsecure server, so it accepts only `http:` requests.
 In order to intercept `https:` requests, `https.createServer` should be used instead, along with a self signed certificate.
 
 ```javascript
-const https = require('https');
-const fs = require('fs');
-const key = fs.readFileSync('./test/ssl.key');
-const cert = fs.readFileSync('./test/ssl.crt');
+const https = require("https");
+const fs = require("fs");
+const key = fs.readFileSync("./test/ssl.key");
+const cert = fs.readFileSync("./test/ssl.crt");
 
-const exampleServer = https.createServer({
+const exampleServer = https.createServer(
+  {
     key,
     cert,
-}, (request, response) => {
-    response.end('Hello from a custom server!');
-});
+  },
+  (request, response) => {
+    response.end("Hello from a custom server!");
+  }
+);
 ```
 
 ## Closing the server
@@ -318,14 +358,13 @@ To shut down the proxy server, call the `close([destroyConnections], [callback])
 
 ```javascript
 server.close(true, () => {
-  console.log('Proxy server was closed.');
+  console.log("Proxy server was closed.");
 });
 ```
 
 The `closeConnections` parameter indicates whether pending proxy connections should be forcibly closed.
 If it's `false`, the function will wait until all connections are closed, which can take a long time.
 If the `callback` parameter is omitted, the function returns a promise.
-
 
 ## Accessing the CONNECT response headers for proxy tunneling
 
@@ -339,32 +378,42 @@ the parameter types of the event callback are described in [Node.js's documentat
 [1]: https://nodejs.org/api/http.html#http_event_connect
 
 ```javascript
-server.on('tunnelConnectResponded', ({ proxyChainId, response, socket, head, customTag }) => {
+server.on(
+  "tunnelConnectResponded",
+  ({ proxyChainId, response, socket, head, customTag }) => {
     console.log(`CONNECT response headers received: ${response.headers}`);
-});
+  }
+);
 ```
 
 Alternatively a [helper function](##helper-functions) may be used:
 
 ```javascript
-listenConnectAnonymizedProxy(anonymizedProxyUrl, ({ response, socket, head }) => {
+listenConnectAnonymizedProxy(
+  anonymizedProxyUrl,
+  ({ response, socket, head }) => {
     console.log(`CONNECT response headers received: ${response.headers}`);
-});
+  }
+);
 ```
 
 You can also listen to CONNECT requests that receive response with status code different from 200.
 The proxy server would emit a `tunnelConnectFailed` event.
 
 ```javascript
-server.on('tunnelConnectFailed', ({ proxyChainId, response, socket, head, customTag }) => {
-    console.log(`CONNECT response failed with status code: ${response.statusCode}`);
-});
+server.on(
+  "tunnelConnectFailed",
+  ({ proxyChainId, response, socket, head, customTag }) => {
+    console.log(
+      `CONNECT response failed with status code: ${response.statusCode}`
+    );
+  }
+);
 ```
 
 ## Helper functions
 
 The package also provides several utility functions.
-
 
 ### `anonymizeProxy({ url, port }, callback)`
 
@@ -381,28 +430,28 @@ from headless Chrome and [Puppeteer](https://github.com/GoogleChrome/puppeteer).
 For details, read this [blog post](https://blog.apify.com/how-to-make-headless-chrome-and-puppeteer-use-a-proxy-server-with-authentication-249a21a79212).
 
 ```javascript
-const puppeteer = require('puppeteer');
-const proxyChain = require('proxy-chain');
+const puppeteer = require("puppeteer");
+const proxyChain = require("proxy-chain");
 
-(async() => {
-    const oldProxyUrl = 'http://bob:password123@proxy.example.com:8000';
-    const newProxyUrl = await proxyChain.anonymizeProxy(oldProxyUrl);
+(async () => {
+  const oldProxyUrl = "http://bob:password123@proxy.example.com:8000";
+  const newProxyUrl = await proxyChain.anonymizeProxy(oldProxyUrl);
 
-    // Prints something like "http://127.0.0.1:45678"
-    console.log(newProxyUrl);
+  // Prints something like "http://127.0.0.1:45678"
+  console.log(newProxyUrl);
 
-    const browser = await puppeteer.launch({
-        args: [`--proxy-server=${newProxyUrl}`],
-    });
+  const browser = await puppeteer.launch({
+    args: [`--proxy-server=${newProxyUrl}`],
+  });
 
-    // Do your magic here...
-    const page = await browser.newPage();
-    await page.goto('https://www.example.com');
-    await page.screenshot({ path: 'example.png' });
-    await browser.close();
+  // Do your magic here...
+  const page = await browser.newPage();
+  await page.goto("https://www.example.com");
+  await page.screenshot({ path: "example.png" });
+  await browser.close();
 
-    // Clean up
-    await proxyChain.closeAnonymizedProxy(newProxyUrl, true);
+  // Clean up
+  await proxyChain.closeAnonymizedProxy(newProxyUrl, true);
 })();
 ```
 
@@ -424,8 +473,9 @@ Creates a TCP tunnel to `targetHost` that goes through a HTTP proxy server
 specified by the `proxyUrl` parameter.
 
 The optional `options` parameter is an object with the following properties:
+
 - `port: Number` - Enables specifying the local port to listen at. By default `0`,
-   which means a random port will be selected.
+  which means a random port will be selected.
 - `hostname: String` - Local hostname to listen at. By default `localhost`.
 - `verbose: Boolean` - If `true`, the functions logs a lot. By default `false`.
 
@@ -444,7 +494,10 @@ For more information, read this [blog post](https://blog.apify.com/tunneling-arb
 Example:
 
 ```javascript
-const host = await createTunnel('http://bob:pass123@proxy.example.com:8000', 'service.example.com:356');
+const host = await createTunnel(
+  "http://bob:pass123@proxy.example.com:8000",
+  "service.example.com:356"
+);
 // Prints something like "localhost:56836"
 console.log(host);
 ```
@@ -472,5 +525,5 @@ Takes a URL and hides the password from it. For example:
 
 ```javascript
 // Prints 'http://bob:<redacted>@example.com'
-console.log(redactUrl('http://bob:pass123@example.com'));
+console.log(redactUrl("http://bob:pass123@example.com"));
 ```

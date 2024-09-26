@@ -1,16 +1,17 @@
-import net from 'net';
-import http from 'http';
-import { Buffer } from 'buffer';
-import { URL } from 'url';
-import { Server, SOCKS_PROTOCOLS } from './server';
-import { nodeify } from './utils/nodeify';
+import net from "net";
+import http from "http";
+import { Buffer } from "buffer";
+import { URL } from "url";
+import { Server, SOCKS_PROTOCOLS } from "./server";
+import { nodeify } from "./utils/nodeify";
 
 // Dictionary, key is value returned from anonymizeProxy(), value is Server instance.
 const anonymizedProxyUrlToServer: Record<string, Server> = {};
 
 export interface AnonymizeProxyOptions {
-    url: string;
-    port: number;
+  url: string;
+  port: number;
+  host?: string;
 }
 
 /**
@@ -18,63 +19,69 @@ export interface AnonymizeProxyOptions {
  * starts an open local proxy server that forwards to the upstream proxy.
  */
 export const anonymizeProxy = (
-    options: string | AnonymizeProxyOptions,
-    callback?: (error: Error | null) => void,
+  options: string | AnonymizeProxyOptions,
+  callback?: (error: Error | null) => void
 ): Promise<string> => {
-    let proxyUrl: string;
-    let port = 0;
+  let proxyUrl: string;
+  let port = 0;
+  let host = "127.0.0.1";
 
-    if (typeof options === 'string') {
-        proxyUrl = options;
-    } else {
-        proxyUrl = options.url;
-        port = options.port;
+  if (typeof options === "string") {
+    proxyUrl = options;
+  } else {
+    proxyUrl = options.url;
+    port = options.port;
+    host = options.host ?? host;
 
-        if (port < 0 || port > 65535) {
-            throw new Error(
-                'Invalid "port" option: only values equals or between 0-65535 are valid',
-            );
-        }
+    if (port < 0 || port > 65535) {
+      throw new Error(
+        'Invalid "port" option: only values equals or between 0-65535 are valid'
+      );
     }
+  }
 
-    const parsedProxyUrl = new URL(proxyUrl);
-    if (!['http:', ...SOCKS_PROTOCOLS].includes(parsedProxyUrl.protocol)) {
-        // eslint-disable-next-line max-len
-        throw new Error(`Invalid "proxyUrl" provided: URL must have one of the following protocols: "http", ${SOCKS_PROTOCOLS.map((p) => `"${p.replace(':', '')}"`).join(', ')} (was "${parsedProxyUrl}")`);
-    }
+  const parsedProxyUrl = new URL(proxyUrl);
+  if (!["http:", ...SOCKS_PROTOCOLS].includes(parsedProxyUrl.protocol)) {
+    // eslint-disable-next-line max-len
+    throw new Error(
+      `Invalid "proxyUrl" provided: URL must have one of the following protocols: "http", ${SOCKS_PROTOCOLS.map(
+        (p) => `"${p.replace(":", "")}"`
+      ).join(", ")} (was "${parsedProxyUrl}")`
+    );
+  }
 
-    // If upstream proxy requires no password, return it directly
-    if (!parsedProxyUrl.username && !parsedProxyUrl.password) {
-        return nodeify(Promise.resolve(proxyUrl), callback);
-    }
+  // If upstream proxy requires no password, return it directly
+  if (!parsedProxyUrl.username && !parsedProxyUrl.password) {
+    return nodeify(Promise.resolve(proxyUrl), callback);
+  }
 
-    let server: Server & { port: number };
+  let server: Server & { port: number };
 
-    const startServer = () => {
-        return Promise.resolve().then(() => {
-            server = new Server({
-                // verbose: true,
-                port,
-                host: '127.0.0.1',
-                prepareRequestFunction: () => {
-                    return {
-                        requestAuthentication: false,
-                        upstreamProxyUrl: proxyUrl,
-                    };
-                },
-            }) as Server & { port: number };
+  const startServer = () => {
+    return Promise.resolve().then(() => {
+      server = new Server({
+        // verbose: true,
+        port,
+        host,
+        prepareRequestFunction: () => {
+          return {
+            requestAuthentication: false,
+            upstreamProxyUrl: proxyUrl,
+          };
+        },
+      }) as Server & { port: number };
 
-            return server.listen();
-        });
-    };
-
-    const promise = startServer().then(() => {
-        const url = `http://127.0.0.1:${server.port}`;
-        anonymizedProxyUrlToServer[url] = server;
-        return url;
+      return server.listen();
     });
+  };
 
-    return nodeify(promise, callback);
+  const promise = startServer().then(() => {
+    const url = `http://${server.host}:${server.port}`;
+    anonymizedProxyUrlToServer[url] = server;
+    return url;
+  });
+
+  return nodeify(promise, callback);
 };
 
 /**
@@ -84,35 +91,35 @@ export const anonymizeProxy = (
  * @param closeConnections If true, pending proxy connections are forcibly closed.
  */
 export const closeAnonymizedProxy = (
-    anonymizedProxyUrl: string,
-    closeConnections: boolean,
-    callback?: (error: Error | null, result?: boolean) => void,
+  anonymizedProxyUrl: string,
+  closeConnections: boolean,
+  callback?: (error: Error | null, result?: boolean) => void
 ): Promise<boolean> => {
-    if (typeof anonymizedProxyUrl !== 'string') {
-        throw new Error('The "anonymizedProxyUrl" parameter must be a string');
-    }
+  if (typeof anonymizedProxyUrl !== "string") {
+    throw new Error('The "anonymizedProxyUrl" parameter must be a string');
+  }
 
-    const server = anonymizedProxyUrlToServer[anonymizedProxyUrl];
-    if (!server) {
-        return nodeify(Promise.resolve(false), callback);
-    }
+  const server = anonymizedProxyUrlToServer[anonymizedProxyUrl];
+  if (!server) {
+    return nodeify(Promise.resolve(false), callback);
+  }
 
-    delete anonymizedProxyUrlToServer[anonymizedProxyUrl];
+  delete anonymizedProxyUrlToServer[anonymizedProxyUrl];
 
-    const promise = server.close(closeConnections).then(() => {
-        return true;
-    });
-    return nodeify(promise, callback);
+  const promise = server.close(closeConnections).then(() => {
+    return true;
+  });
+  return nodeify(promise, callback);
 };
 
 type Callback = ({
-    response,
-    socket,
-    head,
+  response,
+  socket,
+  head,
 }: {
-    response: http.IncomingMessage;
-    socket: net.Socket;
-    head: Buffer;
+  response: http.IncomingMessage;
+  socket: net.Socket;
+  head: Buffer;
 }) => void;
 
 /**
@@ -122,15 +129,15 @@ type Callback = ({
  * invalid proxy URL is given).
  */
 export const listenConnectAnonymizedProxy = (
-    anonymizedProxyUrl: string,
-    tunnelConnectRespondedCallback: Callback,
+  anonymizedProxyUrl: string,
+  tunnelConnectRespondedCallback: Callback
 ): boolean => {
-    const server = anonymizedProxyUrlToServer[anonymizedProxyUrl];
-    if (!server) {
-        return false;
-    }
-    server.on('tunnelConnectResponded', ({ response, socket, head }) => {
-        tunnelConnectRespondedCallback({ response, socket, head });
-    });
-    return true;
+  const server = anonymizedProxyUrlToServer[anonymizedProxyUrl];
+  if (!server) {
+    return false;
+  }
+  server.on("tunnelConnectResponded", ({ response, socket, head }) => {
+    tunnelConnectRespondedCallback({ response, socket, head });
+  });
+  return true;
 };
