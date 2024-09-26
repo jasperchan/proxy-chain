@@ -10,7 +10,7 @@ const anonymizedProxyUrlToServer: Record<string, Server> = {};
 
 export interface AnonymizeProxyOptions {
   url: string;
-  port: number;
+  port?: number;
   host?: string;
 }
 
@@ -30,10 +30,10 @@ export const anonymizeProxy = (
     proxyUrl = options;
   } else {
     proxyUrl = options.url;
-    port = options.port;
+    port = options.port ?? 0;
     host = options.host ?? host;
 
-    if (port < 0 || port > 65535) {
+    if (port <= 0 || port > 65535) {
       throw new Error(
         'Invalid "port" option: only values equals or between 0-65535 are valid'
       );
